@@ -1,39 +1,42 @@
 <?php
 session_start();
-include('db.php');
 
-// Check if user is logged in and is a farmer
-if (empty($errors)) {
-        $stmt = $conn->prepare("SELECT id, name, email, password, user_type FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows == 1) {
-            $user = $result->fetch_assoc();
-            
-            if (password_verify($password, $user['password'])) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_name'] = $user['name'];
-                $_SESSION['user_type'] = $user['user_type'];
-                
-                // Redirect based on user type
-                if ($user['user_type'] == 'farmer') {
-                    header("Location: farmer_dashboard.php");
-                } 
-            } 
-        } 
-        $stmt->close();
-    }
+// Check if farmer is logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: farmer_Login.php");
+    exit();
+}
 
+// Database connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "agromati";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Get farmer details
+$stmt = $conn->prepare("SELECT farmer_name, farmer_image FROM farmers WHERE farmer_id = ?");
+$stmt->bind_param("i", $_SESSION['farmer_id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$farmer = $result->fetch_assoc();
+$stmt->close();
+
+$conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farmer Dashboard - Agromati</title>
+    <title>Agromati - Farmer Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -55,47 +58,44 @@ if (empty($errors)) {
             background-color: #f5f5f5;
         }
 
-        /* Dashboard Layout */
-        .dashboard {
+        .dashboard-container {
             display: flex;
             min-height: 100vh;
         }
 
-        /* Sidebar Styles */
+        /* Sidebar */
         .sidebar {
-            width: 280px;
-            background: var(--primary);
-            color: white;
-            padding: 20px 0;
+            width: 250px;
+            background: var(--white);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             position: fixed;
-            height: 100vh;
+            height: 100%;
+            padding: 20px 0;
             transition: all 0.3s;
-            z-index: 1000;
         }
 
         .sidebar-header {
-            padding: 0 20px 20px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .sidebar-header .farmer-avatar {
-            width: 80px;
-            height: 80px;
+        .profile-img {
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid rgba(255,255,255,0.2);
-            margin-bottom: 15px;
+            border: 3px solid var(--primary);
+            margin: 0 auto 15px;
         }
 
-        .sidebar-header h3 {
-            color: white;
+        .profile-name {
             font-weight: 600;
             margin-bottom: 5px;
         }
 
-        .sidebar-header p {
-            color: rgba(255,255,255,0.8);
+        .profile-role {
+            color: var(--primary);
             font-size: 0.9rem;
         }
 
@@ -106,284 +106,361 @@ if (empty($errors)) {
         .sidebar-menu a {
             display: flex;
             align-items: center;
-            padding: 12px 25px;
-            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            color: var(--text);
             transition: all 0.3s;
-            font-weight: 500;
             border-left: 3px solid transparent;
-            text-decoration: none;
         }
 
-        .sidebar-menu a:hover,
+        .sidebar-menu a:hover, 
         .sidebar-menu a.active {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-left: 3px solid white;
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
         }
 
         .sidebar-menu a i {
-            margin-right: 12px;
+            margin-right: 10px;
             width: 20px;
             text-align: center;
-            font-size: 1.1rem;
         }
 
-        /* Main Content Area */
+        /* Main Content */
         .main-content {
             flex: 1;
-            margin-left: 280px;
-            padding-top: 80px;
+            margin-left: 250px;
+            padding: 20px;
             transition: all 0.3s;
         }
 
-        .top-navbar {
-            padding: 15px 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: fixed;
-            width: calc(100% - 280px);
-            z-index: 999;
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 15px 20px;
+            background: var(--white);
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .page-title h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+            color: var(--primary);
+        }
+
+        .logout-btn {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: 500;
             transition: all 0.3s;
         }
 
-        .content-area {
-            padding: 25px;
+        .logout-btn:hover {
+            background: var(--primary-dark);
         }
 
         /* Dashboard Cards */
-        .dashboard-card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .dashboard-card h4 {
-            color: var(--primary);
-            margin-bottom: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-
-        .dashboard-card h4 i {
-            margin-right: 10px;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
+        .dashboard-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
-        .stat-card {
-            background: white;
+        .card {
+            background: var(--white);
             border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
             transition: all 0.3s;
         }
 
-        .stat-card:hover {
+        .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
-        .stat-card h3 {
-            font-size: 2rem;
+        .card-header {
+            padding: 15px 20px;
+            background: rgba(40, 167, 69, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0;
             color: var(--primary);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Recent Activity */
+        .recent-activity {
+            background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .activity-item {
+            display: flex;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(40, 167, 69, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--primary);
+        }
+
+        .activity-content h4 {
+            font-size: 1rem;
             margin-bottom: 5px;
         }
 
-        .stat-card p {
+        .activity-content p {
             color: var(--text-light);
+            font-size: 0.9rem;
             margin-bottom: 0;
         }
 
-        .stat-card i {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-top: 15px;
-            opacity: 0.2;
+        .activity-time {
+            color: var(--text-light);
+            font-size: 0.8rem;
         }
 
-        /* Mobile Navigation Toggle */
-        .nav-toggle {
-            display: none;
-            background: transparent;
-            border: none;
-            width: 30px;
-            height: 24px;
-            position: relative;
-            cursor: pointer;
-            z-index: 1001;
-            padding: 0;
-        }
-
-        .nav-toggle span {
-            display: block;
-            position: absolute;
-            height: 3px;
-            width: 100%;
-            background: var(--primary);
-            border-radius: 3px;
-            opacity: 1;
-            left: 0;
-            transform: rotate(0deg);
-            transition: all 0.3s ease;
-        }
-
-        .nav-toggle span:nth-child(1) { top: 0; }
-        .nav-toggle span:nth-child(2),
-        .nav-toggle span:nth-child(3) { top: 10px; }
-        .nav-toggle span:nth-child(4) { top: 20px; }
-        .nav-toggle.active span:nth-child(1),
-        .nav-toggle.active span:nth-child(4) { top: 10px; width: 0%; left: 50%; }
-        .nav-toggle.active span:nth-child(2) { transform: rotate(45deg); }
-        .nav-toggle.active span:nth-child(3) { transform: rotate(-45deg); }
-
-        /* Overlay */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        .overlay.active { opacity: 1; visibility: visible; }
-
-        /* Responsive Styles */
-        @media (max-width: 992px) {
-            .sidebar { width: 250px; }
-            .main-content { margin-left: 250px; }
-            .top-navbar { width: calc(100% - 250px); }
-        }
+        /* Responsive */
         @media (max-width: 768px) {
-            .nav-toggle { display: block; }
-            .sidebar { width: 280px; left: -280px; }
-            .sidebar.active { left: 0; }
-            .main-content { margin-left: 0; }
-            .main-content.shift { margin-left: 280px; }
-            .top-navbar { width: 100%; }
+            .sidebar {
+                width: 80px;
+                overflow: hidden;
+            }
+            
+            .sidebar-header .profile-name,
+            .sidebar-menu a span {
+                display: none;
+            }
+            
+            .sidebar-menu a {
+                justify-content: center;
+                padding: 12px 0;
+            }
+            
+            .sidebar-menu a i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
         }
+
         @media (max-width: 576px) {
-            .content-area { padding: 15px; }
-            .stats-grid { grid-template-columns: 1fr; }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .dashboard-container {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard">
+    <div class="dashboard-container">
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <img src="images/farmers/<?php echo $farmer['photo'] ?? 'default.jpg'; ?>" class="farmer-avatar" alt="Farmer">
-                <h3><?php echo htmlspecialchars($farmer['name']); ?></h3>
-                <p>Farmer Member</p>
+                <?php if (!empty($farmer['farmer_image'])): ?>
+                    <img src="data:image/jpeg;base64,<?php echo base64_encode($farmer['farmer_image']); ?>" alt="Profile" class="profile-img">
+                <?php else: ?>
+                    <img src="images/default-profile.png" alt="Profile" class="profile-img">
+                <?php endif; ?>
+                <h4 class="profile-name"><?php echo htmlspecialchars($farmer['farmer_name']); ?></h4>
+                <div class="profile-role">Farmer</div>
             </div>
-
+            
             <div class="sidebar-menu">
-                <a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                <a href="profile.php"><i class="fas fa-user"></i> My Profile</a>
-                <a href="post_for_sell.php"><i class="fas fa-user"></i> Post for sell</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a href="farmer_dashboard.php" class="active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="sell_post.php">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Sell Post</span>
+                </a>
+                <a href="farmer_profile.php">
+                    <i class="fas fa-user"></i>
+                    <span>Your Profile</span>
+                </a>
+                <a href="farmer_orders.php">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Orders</span>
+                </a>
+                <a href="price_list.php">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Price List</span>
+                </a>
+                <a href="farmer_logout.php">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
             </div>
         </div>
-
+        
+        <!-- Main Content -->
         <div class="main-content">
-            <div class="top-navbar">
-                <button class="nav-toggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <h4>Farmer Dashboard</h4>
-                <div class="user-info">
-                    <span><?php echo date('l, F j, Y'); ?></span>
+            <div class="header">
+                <div class="page-title">
+                    <h1>Farmer Dashboard</h1>
+                </div>
+                <a href="farmer_logout.php" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+            
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-seedling"></i> Today's Crop Prices</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Check the latest market prices for your crops and get the best deals.</p>
+                        <a href="price_list.php" class="btn btn-sm btn-primary">View Prices</a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-plus-circle"></i> Create Sell Post</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>List your crops for sale and connect directly with buyers in your area.</p>
+                        <a href="sell_post.php" class="btn btn-sm btn-primary">Sell Now</a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Seasonal Tips</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Get expert advice on what to plant this season for maximum yield.</p>
+                        <a href="#" class="btn btn-sm btn-primary">View Tips</a>
+                    </div>
                 </div>
             </div>
-
-            <div class="content-area">
-                <div class="dashboard-card">
-                    <h4><i class="fas fa-leaf"></i> Welcome, <?php echo htmlspecialchars($farmer['name']); ?>!</h4>
-                    <p>Here's a summary of your account.</p>
+            
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>New Order Received</h4>
+                        <p>Buyer "Fresh Market Ltd" ordered 50kg of your rice</p>
+                    </div>
+                    <div class="activity-time">
+                        2 hours ago
+                    </div>
                 </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>4.8</h3>
-                        <p>Your Rating</p>
-                        <i class="fas fa-star"></i>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>Crop Listed Successfully</h4>
+                        <p>Your wheat crop is now visible to buyers</p>
+                    </div>
+                    <div class="activity-time">
+                        1 day ago
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>Payment Received</h4>
+                        <p>Payment of ₹5,200 received for potato order</p>
+                    </div>
+                    <div class="activity-time">
+                        3 days ago
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Crop Management Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-tractor"></i> Crop Management</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h4>Current Crops</h4>
+                            <ul class="list-group">
+                                <li class="list-group-item">Rice (Ready in 15 days)</li>
+                                <li class="list-group-item">Wheat (Ready in 30 days)</li>
+                                <li class="list-group-item">Potatoes (Harvested)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h4>Upcoming Tasks</h4>
+                            <ul class="list-group">
+                                <li class="list-group-item">Irrigate rice field (Tomorrow)</li>
+                                <li class="list-group-item">Apply fertilizer to wheat (Next week)</li>
+                                <li class="list-group-item">Prepare land for next season</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h4>Weather Forecast</h4>
+                            <div class="alert alert-info">
+                                <strong>Next 3 days:</strong> Sunny with 10% chance of rain
+                            </div>
+                            <p>Ideal conditions for harvesting your wheat crop.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="overlay"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const navToggle = document.querySelector('.nav-toggle');
-            const sidebar = document.querySelector('.sidebar');
-            const mainContent = document.querySelector('.main-content');
-            const overlay = document.querySelector('.overlay');
-
-            // Toggle navigation
-            navToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                sidebar.classList.toggle('active');
-                mainContent.classList.toggle('shift');
-                overlay.classList.toggle('active');
-            });
-
-            // Close navigation when clicking overlay
-            overlay.addEventListener('click', function() {
-                navToggle.classList.remove('active');
-                sidebar.classList.remove('active');
-                mainContent.classList.remove('shift');
-                this.classList.remove('active');
-            });
-
-            // Close navigation when clicking a menu item
-            const navItems = document.querySelectorAll('.sidebar-menu a');
-            navItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    // This check is for external links like profile.php
-                    // For internal # links, it would prevent navigation if not handled.
-                    // Since we removed all # links, this part is simpler.
-                    if (window.innerWidth <= 768) {
-                        // We only close the sidebar if it's open on mobile.
-                        if (sidebar.classList.contains('active')) {
-                           navToggle.classList.remove('active');
-                           sidebar.classList.remove('active');
-                           mainContent.classList.remove('shift');
-                           overlay.classList.remove('active');
-                        }
-                    }
-                });
-            });
-        });
+        // Mobile sidebar toggle (can be added later if needed)
     </script>
 </body>
 </html>
-```

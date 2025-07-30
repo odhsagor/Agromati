@@ -1,39 +1,43 @@
 <?php
 session_start();
-include('db.php');
 
-// Check if user is logged in and is a farmer
-if (empty($errors)) {
-        $stmt = $conn->prepare("SELECT id, name, email, password, user_type FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows == 1) {
-            $user = $result->fetch_assoc();
-            
-            if (password_verify($password, $user['password'])) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_name'] = $user['name'];
-                $_SESSION['user_type'] = $user['user_type'];
-                
-                // Redirect based on user type
-                if ($user['user_type'] == 'buyer') {
-                    header("Location: buyer_dashboard.php");
-                } 
-            } 
-        } 
-        $stmt->close();
-    }
+// Redirect to login if not authenticated
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header("Location: buyer_Login.php");
+    exit;
+}
 
+// Database connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "agromati";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Get buyer details
+$buyer_id = $_SESSION['buyer_id'];
+$stmt = $conn->prepare("SELECT buyer_name, buyer_image FROM buyers WHERE buyer_id = ?");
+$stmt->bind_param("i", $buyer_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$buyer = $result->fetch_assoc();
+
+$stmt->close();
+$conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buyer Dashboard - Agromati</title>
+    <title>Agromati - Buyer Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -55,47 +59,44 @@ if (empty($errors)) {
             background-color: #f5f5f5;
         }
 
-        /* Dashboard Layout */
-        .dashboard {
+        .dashboard-container {
             display: flex;
             min-height: 100vh;
         }
 
-        /* Sidebar Styles */
+        /* Sidebar */
         .sidebar {
-            width: 280px;
-            background: var(--primary);
-            color: white;
-            padding: 20px 0;
+            width: 250px;
+            background: var(--white);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             position: fixed;
-            height: 100vh;
+            height: 100%;
+            padding: 20px 0;
             transition: all 0.3s;
-            z-index: 1000;
         }
 
         .sidebar-header {
-            padding: 0 20px 20px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .sidebar-header .buyer-avatar {
-            width: 80px;
-            height: 80px;
+        .profile-img {
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid rgba(255,255,255,0.2);
-            margin-bottom: 15px;
+            border: 3px solid var(--primary);
+            margin: 0 auto 15px;
         }
 
-        .sidebar-header h3 {
-            color: white;
+        .profile-name {
             font-weight: 600;
             margin-bottom: 5px;
         }
 
-        .sidebar-header p {
-            color: rgba(255,255,255,0.8);
+        .profile-role {
+            color: var(--primary);
             font-size: 0.9rem;
         }
 
@@ -106,230 +107,469 @@ if (empty($errors)) {
         .sidebar-menu a {
             display: flex;
             align-items: center;
-            padding: 12px 25px;
-            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            color: var(--text);
             transition: all 0.3s;
-            font-weight: 500;
             border-left: 3px solid transparent;
-            text-decoration: none;
         }
 
-        .sidebar-menu a:hover,
+        .sidebar-menu a:hover, 
         .sidebar-menu a.active {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-left: 3px solid white;
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
         }
 
         .sidebar-menu a i {
-            margin-right: 12px;
+            margin-right: 10px;
             width: 20px;
             text-align: center;
-            font-size: 1.1rem;
         }
 
-        /* Main Content Area */
+        /* Main Content */
         .main-content {
             flex: 1;
-            margin-left: 280px;
-            padding-top: 80px;
+            margin-left: 250px;
+            padding: 20px;
             transition: all 0.3s;
         }
 
-        .top-navbar {
-            padding: 15px 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: fixed;
-            width: calc(100% - 280px);
-            z-index: 999;
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 15px 20px;
+            background: var(--white);
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .page-title h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+            color: var(--primary);
+        }
+
+        .logout-btn {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: 500;
             transition: all 0.3s;
         }
 
-        .content-area {
-            padding: 25px;
+        .logout-btn:hover {
+            background: var(--primary-dark);
         }
 
         /* Dashboard Cards */
-        .dashboard-card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .dashboard-card h4 {
-            color: var(--primary);
-            margin-bottom: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-
-        .dashboard-card h4 i {
-            margin-right: 10px;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
+        .dashboard-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
-        .stat-card {
-            background: white;
+        .card {
+            background: var(--white);
             border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
             transition: all 0.3s;
         }
 
-        .stat-card:hover {
+        .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
-        .stat-card h3 {
-            font-size: 2rem;
+        .card-header {
+            padding: 15px 20px;
+            background: rgba(40, 167, 69, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0;
             color: var(--primary);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Recent Activity */
+        .recent-activity {
+            background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .activity-item {
+            display: flex;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(40, 167, 69, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--primary);
+        }
+
+        .activity-content h4 {
+            font-size: 1rem;
             margin-bottom: 5px;
         }
 
-        .stat-card p {
+        .activity-content p {
             color: var(--text-light);
+            font-size: 0.9rem;
             margin-bottom: 0;
         }
 
-        .stat-card i {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-top: 15px;
-            opacity: 0.2;
+        .activity-time {
+            color: var(--text-light);
+            font-size: 0.8rem;
         }
 
-        /* Mobile Navigation Toggle */
-        .nav-toggle { display: none; background: transparent; border: none; width: 30px; height: 24px; position: relative; cursor: pointer; z-index: 1001; padding: 0; }
-        .nav-toggle span { display: block; position: absolute; height: 3px; width: 100%; background: var(--primary); border-radius: 3px; opacity: 1; left: 0; transform: rotate(0deg); transition: all 0.3s ease; }
-        .nav-toggle span:nth-child(1) { top: 0; }
-        .nav-toggle span:nth-child(2),
-        .nav-toggle span:nth-child(3) { top: 10px; }
-        .nav-toggle span:nth-child(4) { top: 20px; }
-        .nav-toggle.active span:nth-child(1),
-        .nav-toggle.active span:nth-child(4) { top: 10px; width: 0%; left: 50%; }
-        .nav-toggle.active span:nth-child(2) { transform: rotate(45deg); }
-        .nav-toggle.active span:nth-child(3) { transform: rotate(-45deg); }
+        /* Crop Cards */
+        .crop-card {
+            transition: all 0.3s;
+            border: none;
+            margin-bottom: 20px;
+        }
 
-        /* Overlay */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
-        .overlay.active { opacity: 1; visibility: visible; }
+        .crop-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
 
-        /* Responsive Styles */
-        @media (max-width: 992px) { .sidebar { width: 250px; } .main-content { margin-left: 250px; } .top-navbar { width: calc(100% - 250px); } }
-        @media (max-width: 768px) { .nav-toggle { display: block; } .sidebar { width: 280px; left: -280px; } .sidebar.active { left: 0; } .main-content { margin-left: 0; } .main-content.shift { margin-left: 280px; } .top-navbar { width: 100%; } }
-        @media (max-width: 576px) { .content-area { padding: 15px; } .stats-grid { grid-template-columns: 1fr; } }
+        .crop-img {
+            height: 180px;
+            object-fit: cover;
+        }
+
+        .price-tag {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+                overflow: hidden;
+            }
+            
+            .sidebar-header .profile-name,
+            .sidebar-menu a span {
+                display: none;
+            }
+            
+            .sidebar-menu a {
+                justify-content: center;
+                padding: 12px 0;
+            }
+            
+            .sidebar-menu a i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .dashboard-container {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="dashboard">
+    <div class="dashboard-container">
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <img src="images/buyers/default.jpg" class="buyer-avatar" alt="Buyer">
-                <h3><?php echo htmlspecialchars($buyer_name); ?></h3>
-                <p>Buyer Member</p>
+                <?php if (!empty($buyer['buyer_image'])): ?>
+                    <img src="data:image/jpeg;base64,<?php echo base64_encode($buyer['buyer_image']); ?>" alt="Profile" class="profile-img">
+                <?php else: ?>
+                    <img src="images/default-profile.png" alt="Profile" class="profile-img">
+                <?php endif; ?>
+                <h4 class="profile-name"><?php echo htmlspecialchars($buyer['buyer_name']); ?></h4>
+                <div class="profile-role">Buyer</div>
             </div>
-
+            
             <div class="sidebar-menu">
-                <a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                <a href="profile.php"><i class="fas fa-user"></i> My Profile</a>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a href="buyer_dashboard.php" class="active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="buy_crop.php">
+                    <i class="fas fa-shopping-basket"></i>
+                    <span>Buy Crops</span>
+                </a>
+                <a href="buyer_profile.php">
+                    <i class="fas fa-user"></i>
+                    <span>Your Profile</span>
+                </a>
+                <a href="buyer_orders.php">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Your Orders</span>
+                </a>
+                <a href="price_list.php">
+                    <i class="fas fa-tags"></i>
+                    <span>Price List</span>
+                </a>
+                <a href="buyer_logout.php">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
             </div>
         </div>
-
+        
+        <!-- Main Content -->
         <div class="main-content">
-            <div class="top-navbar">
-                <button class="nav-toggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <h4>Buyer Dashboard</h4>
-                <div class="user-info">
-                    <span><?php echo date('l, F j, Y'); ?></span>
+            <div class="header">
+                <div class="page-title">
+                    <h1>Buyer Dashboard</h1>
+                </div>
+                <a href="buyer_logout.php" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+            
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-shopping-cart"></i> Active Orders</h3>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="text-center">5</h2>
+                        <p class="text-center">Orders in progress</p>
+                        <a href="buyer_orders.php" class="btn btn-sm btn-primary w-100">View Orders</a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-check-circle"></i> Completed Orders</h3>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="text-center">12</h2>
+                        <p class="text-center">Past purchases</p>
+                        <a href="buyer_orders.php?filter=completed" class="btn btn-sm btn-primary w-100">View History</a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-star"></i> Favorite Farmers</h3>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="text-center">8</h2>
+                        <p class="text-center">Trusted suppliers</p>
+                        <a href="#" class="btn btn-sm btn-primary w-100">Manage Favorites</a>
+                    </div>
                 </div>
             </div>
-
-            <div class="content-area">
-                <div class="dashboard-card">
-                    <h4><i class="fas fa-shopping-cart"></i> Welcome, <?php echo htmlspecialchars($buyer_name); ?>!</h4>
-                    <p>Here's a summary of your account.</p>
+            
+            <!-- Featured Crops -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3><i class="fas fa-seedling"></i> Featured Crops</h3>
                 </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>4.9</h3>
-                        <p>Your Rating</p>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="card crop-card h-100">
+                                <img src="images/rice.jpg" class="card-img-top crop-img" alt="Rice">
+                                <div class="card-body">
+                                    <h5 class="card-title">Premium Rice</h5>
+                                    <p class="card-text text-muted">From Bogura</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="price-tag">৳45/kg</span>
+                                        <a href="#" class="btn btn-sm btn-primary">Buy Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card crop-card h-100">
+                                <img src="images/potato.jpg" class="card-img-top crop-img" alt="Potato">
+                                <div class="card-body">
+                                    <h5 class="card-title">Fresh Potato</h5>
+                                    <p class="card-text text-muted">From Rangpur</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="price-tag">৳25/kg</span>
+                                        <a href="#" class="btn btn-sm btn-primary">Buy Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card crop-card h-100">
+                                <img src="images/tomato.jpg" class="card-img-top crop-img" alt="Tomato">
+                                <div class="card-body">
+                                    <h5 class="card-title">Organic Tomato</h5>
+                                    <p class="card-text text-muted">From Comilla</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="price-tag">৳60/kg</span>
+                                        <a href="#" class="btn btn-sm btn-primary">Buy Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card crop-card h-100">
+                                <img src="images/mango.jpg" class="card-img-top crop-img" alt="Mango">
+                                <div class="card-body">
+                                    <h5 class="card-title">Himsagar Mango</h5>
+                                    <p class="card-text text-muted">From Rajshahi</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="price-tag">৳120/kg</span>
+                                        <a href="#" class="btn btn-sm btn-primary">Buy Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <a href="buy_crop.php" class="btn btn-primary">View All Crops</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>New Order Placed</h4>
+                        <p>You ordered 50kg of premium rice from Farmer Rahman</p>
+                    </div>
+                    <div class="activity-time">
+                        2 hours ago
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>Order Completed</h4>
+                        <p>Your potato order has been delivered successfully</p>
+                    </div>
+                    <div class="activity-time">
+                        1 day ago
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon">
                         <i class="fas fa-star"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>Farmer Rated</h4>
+                        <p>You gave 5 stars to Farmer Akhtar for quality tomatoes</p>
+                    </div>
+                    <div class="activity-time">
+                        3 days ago
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Price Trends -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-line"></i> Current Price Trends</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Crop</th>
+                                    <th>Current Price (৳/kg)</th>
+                                    <th>Weekly Change</th>
+                                    <th>Top Producing Region</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Rice</td>
+                                    <td>45</td>
+                                    <td><span class="text-success">+2.5% <i class="fas fa-arrow-up"></i></span></td>
+                                    <td>Bogura</td>
+                                    <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
+                                </tr>
+                                <tr>
+                                    <td>Potato</td>
+                                    <td>25</td>
+                                    <td><span class="text-danger">-1.8% <i class="fas fa-arrow-down"></i></span></td>
+                                    <td>Rangpur</td>
+                                    <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
+                                </tr>
+                                <tr>
+                                    <td>Tomato</td>
+                                    <td>60</td>
+                                    <td><span class="text-success">+5.2% <i class="fas fa-arrow-up"></i></span></td>
+                                    <td>Comilla</td>
+                                    <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
+                                </tr>
+                                <tr>
+                                    <td>Mango</td>
+                                    <td>120</td>
+                                    <td><span class="text-success">+8.7% <i class="fas fa-arrow-up"></i></span></td>
+                                    <td>Rajshahi</td>
+                                    <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="overlay"></div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const navToggle = document.querySelector('.nav-toggle');
-            const sidebar = document.querySelector('.sidebar');
-            const mainContent = document.querySelector('.main-content');
-            const overlay = document.querySelector('.overlay');
-
-            // Toggle navigation
-            navToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                sidebar.classList.toggle('active');
-                mainContent.classList.toggle('shift');
-                overlay.classList.toggle('active');
-            });
-
-            // Close navigation when clicking overlay
-            overlay.addEventListener('click', function() {
-                navToggle.classList.remove('active');
-                sidebar.classList.remove('active');
-                mainContent.classList.remove('shift');
-                this.classList.remove('active');
-            });
-
-            // Close navigation when clicking a menu item
-            const navItems = document.querySelectorAll('.sidebar-menu a');
-            navItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    if (window.innerWidth <= 768) {
-                        if (sidebar.classList.contains('active')) {
-                           navToggle.classList.remove('active');
-                           sidebar.classList.remove('active');
-                           mainContent.classList.remove('shift');
-                           overlay.classList.remove('active');
-                        }
-                    }
-                });
-            });
-        });
+        // Mobile sidebar toggle (can be added later if needed)
     </script>
 </body>
 </html>

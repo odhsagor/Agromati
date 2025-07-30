@@ -45,6 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             max-width: 450px;
             margin: 0 auto;
         }
+
+        .nav-menu a.active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
         .login-box h2 {
             margin-bottom: 30px;
             color: var(--dark);
@@ -107,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-left: 4px solid var(--primary);
         }
     </style>
+    </style>
 </head>
 <body>
     <!-- WhatsApp Button -->
@@ -127,9 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </button>
             <div class="nav-menu">
                 <a href="index.php">Home</a>
-                <a href="prices.html">Crop Prices</a>
-                <a href="register.php">Register</a>
-                <a href="login.php">Login</a>
+                <a href="buyerRegister.php">Buyer Register</a>
+                <a href="buyer_Login.php"> Buyer Login</a>
+                <a href="farmerRegister.php"> farmer Register</a>
+                <a href="farmer_Login.php"> Farmer Login</a>
                 <a href="admin_login.php" class="active">Admin</a>
             </div>
         </div>

@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .nav-menu a.active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+    </style>
 </head>
 <body>
     <!-- WhatsApp Button -->
@@ -28,9 +35,10 @@
             </button>
             <div class="nav-menu">
                 <a href="index.php" class="active">Home</a>
-                <a href="prices.html">Crop Prices</a>
-                <a href="register.php">Register</a>
-                <a href="login.php">Login</a>
+                <a href="buyerRegister.php">Buyer Register</a>
+                <a href="buyer_Login.php"> Buyer Login</a>
+                <a href="farmerRegister.php"> farmer Register</a>
+                <a href="farmer_Login.php"> Farmer Login</a>
                 <a href="admin_login.php">Admin</a>
             </div>
         </div>
