@@ -27,8 +27,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($email) || empty($password)) {
         $error = "Please fill in all fields";
     } else {
-        // Check buyer credentials
-        $stmt = $conn->prepare("SELECT buyer_id, buyer_name, buyer_password FROM buyers WHERE buyer_email = ?");
+        // Check buyer credentials including is_active status
+        $stmt = $conn->prepare("SELECT buyer_id, buyer_name, buyer_password, is_active FROM buyers WHERE buyer_email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -36,7 +36,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($result->num_rows == 1) {
             $buyer = $result->fetch_assoc();
             
-            if (password_verify($password, $buyer['buyer_password'])) {
+            // Check if account is suspended
+            if ($buyer['is_active'] == 0) {
+                $error = "Your account has been suspended by admin. Please contact support.";
+            } elseif (password_verify($password, $buyer['buyer_password'])) {
                 // Login successful
                 $_SESSION['buyer_id'] = $buyer['buyer_id'];
                 $_SESSION['buyer_name'] = $buyer['buyer_name'];

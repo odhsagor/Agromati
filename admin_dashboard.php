@@ -318,12 +318,9 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
             </div>
             <nav class="sidebar-menu">
                 <a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                <a href="#crop-prices"><i class="fas fa-seedling"></i> Manage Crops</a>
-                <a href="#farmers"><i class="fas fa-users"></i> Farmers List</a>
-                <a href="#buyers"><i class="fas fa-store"></i> Buyers List</a>
-                <a href="#transactions"><i class="fas fa-exchange-alt"></i> Transactions</a>
-                <a href="#reports"><i class="fas fa-chart-bar"></i> Reports</a>
-                <a href="#settings"><i class="fas fa-cog"></i> Settings</a>
+                <a href="crop-prices.php"><i class="fas fa-seedling"></i> Manage Crops price</a>
+                <a href="farmersList.php"><i class="fas fa-users"></i> Farmers List</a>
+                <a href="buyersList.php"><i class="fas fa-store"></i> Buyers List</a>
                 <a href="admin_logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>
         </aside>
