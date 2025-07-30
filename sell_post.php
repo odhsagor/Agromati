@@ -402,7 +402,7 @@ $conn->close();
                     <i class="fas fa-chart-line"></i>
                     <span>Price List</span>
                 </a>
-                <a href="logout.php">
+                <a href="farmer_logout.php">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
                 </a>
