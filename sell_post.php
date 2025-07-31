@@ -13,15 +13,13 @@ $username = "root";
 $password = "";
 $dbname = "agromati";
 
-// Create connection
+
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
+
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
-// Get farmer details
 $stmt = $conn->prepare("SELECT farmer_name, farmer_image FROM farmers WHERE farmer_id = ?");
 $stmt->bind_param("i", $_SESSION['farmer_id']);
 $stmt->execute();
@@ -29,13 +27,11 @@ $result = $stmt->get_result();
 $farmer = $result->fetch_assoc();
 $stmt->close();
 
-// Initialize variables
+
 $errors = [];
 $success = false;
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 $crop_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-// Handle delete action
 if ($action === 'delete' && $crop_id > 0) {
     $stmt = $conn->prepare("DELETE FROM crops WHERE crop_id = ? AND farmer_id = ?");
     $stmt->bind_param("ii", $crop_id, $_SESSION['farmer_id']);
@@ -47,18 +43,15 @@ if ($action === 'delete' && $crop_id > 0) {
     $stmt->close();
 }
 
-// Process form submission for add/edit
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validate and sanitize inputs
     $crop_name = trim($_POST['crop_name']);
     $crop_type = trim($_POST['crop_type']);
     $quantity = trim($_POST['quantity']);
     $price_per_kg = trim($_POST['price_per_kg']);
     $harvest_date = trim($_POST['harvest_date']);
-    $status = 'available'; // Default status
+    $status = 'available'; 
     $farmer_id = $_SESSION['farmer_id'];
     
-    // Handle image upload
     $crop_image = null;
     if (isset($_FILES['crop_image']) && $_FILES['crop_image']['error'] === UPLOAD_ERR_OK) {
         $check = getimagesize($_FILES['crop_image']['tmp_name']);
@@ -68,8 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $errors['crop_image'] = "File is not an image.";
         }
     } elseif ($action === 'edit' && empty($_FILES['crop_image']['name'])) {
-        // Keep existing image if editing and no new image uploaded
-        $crop_image = null; // We'll handle this in the update query
+        $crop_image = null;
     } else {
         $errors['crop_image'] = "Please upload an image of your crop.";
     }
@@ -96,11 +88,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (strtotime($harvest_date) > strtotime('today')) {
         $errors['harvest_date'] = "Harvest date cannot be in the future";
     }
-    
-    // If no errors, insert/update into database
     if (empty($errors)) {
         if ($action === 'edit' && $crop_id > 0) {
-            // Update existing crop
             if ($crop_image !== null) {
                 $stmt = $conn->prepare("UPDATE crops SET crop_name=?, crop_type=?, quantity=?, price_per_kg=?, harvest_date=?, crop_image=?, status=? WHERE crop_id=? AND farmer_id=?");
                 $stmt->bind_param("ssddsssii", $crop_name, $crop_type, $quantity, $price_per_kg, $harvest_date, $crop_image, $status, $crop_id, $farmer_id);
@@ -115,13 +104,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $errors['database'] = "Error updating crop post: " . $stmt->error;
             }
         } else {
-            // Insert new crop
             $stmt = $conn->prepare("INSERT INTO crops (crop_name, crop_type, quantity, price_per_kg, harvest_date, crop_image, status, farmer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("ssddsssi", $crop_name, $crop_type, $quantity, $price_per_kg, $harvest_date, $crop_image, $status, $farmer_id);
             
             if ($stmt->execute()) {
                 $success = "Crop post created successfully!";
-                // Clear form for new entry
                 $crop_name = $crop_type = $quantity = $price_per_kg = $harvest_date = '';
             } else {
                 $errors['database'] = "Error creating crop post: " . $stmt->error;
@@ -130,15 +117,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->close();
     }
 }
-
-// Get farmer's existing crop posts
 $stmt = $conn->prepare("SELECT * FROM crops WHERE farmer_id = ? ORDER BY harvest_date DESC");
 $stmt->bind_param("i", $_SESSION['farmer_id']);
 $stmt->execute();
 $crop_posts = $stmt->get_result();
 $stmt->close();
-
-// Get data for edit
 $edit_data = [];
 if ($action === 'edit' && $crop_id > 0) {
     $stmt = $conn->prepare("SELECT * FROM crops WHERE crop_id = ? AND farmer_id = ?");
@@ -161,355 +144,16 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #28a745;
-            --primary-dark: #218838;
-            --secondary: #ffc107;
-            --dark: #343a40;
-            --light: #f8f9fa;
-            --white: #fff;
-            --black: #000;
-            --text: #333;
-            --text-light: #6c757d;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f5f5;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar - Same as farmer dashboard */
-        .sidebar {
-            width: 250px;
-            background: var(--white);
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            height: 100%;
-            padding: 20px 0;
-            transition: all 0.3s;
-        }
-
-        .sidebar-header {
-            text-align: center;
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin: 0 auto 15px;
-        }
-
-        .profile-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .profile-role {
-            color: var(--primary);
-            font-size: 0.9rem;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: var(--text);
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-
-        .sidebar-menu a:hover, 
-        .sidebar-menu a.active {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--primary);
-            border-left: 3px solid var(--primary);
-        }
-
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 250px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background: var(--white);
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .page-title h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0;
-            color: var(--primary);
-        }
-
-        /* Form Styles */
-        .sell-form-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: var(--dark);
-        }
-
-        .form-control {
-            border-radius: 5px;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
-        }
-
-        .btn-submit {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            padding: 10px 25px;
-            border-radius: 5px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-submit:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-
-        .image-preview {
-            width: 200px;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 2px dashed #ddd;
-            display: block;
-            margin: 15px auto;
-        }
-
-        .error-message {
-            color: #dc3545;
-            font-size: 0.875em;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-                overflow: hidden;
-            }
-            
-            .sidebar-header .profile-name,
-            .sidebar-menu a span {
-                display: none;
-            }
-            
-            .sidebar-menu a {
-                justify-content: center;
-                padding: 12px 0;
-            }
-            
-            .sidebar-menu a i {
-                margin-right: 0;
-                font-size: 1.2rem;
-            }
-            
-            .main-content {
-                margin-left: 80px;
-            }
-        }
-
-
-
-        .posts-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-        }
-
-        .posts-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .posts-header h2 {
-            color: var(--primary);
-            margin: 0;
-        }
-
-        .post-card {
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .post-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .post-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        .post-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin: 0;
-        }
-
-        .post-type {
-            display: inline-block;
-            background: #e9f7ef;
-            color: var(--primary);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .post-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-
-        .post-details {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .post-detail {
-            display: flex;
-            align-items: center;
-        }
-
-        .post-detail i {
-            margin-right: 8px;
-            color: var(--primary);
-        }
-
-        .post-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-edit {
-            background: var(--secondary);
-            color: var(--dark);
-        }
-
-        .btn-delete {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-edit:hover, .btn-delete:hover {
-            opacity: 0.9;
-        }
-
-        .no-posts {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-light);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {            
-            .post-header {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .post-actions {
-                margin-top: 10px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .dashboard-container {
-                flex-direction: column;
-            }
-            
-            .sell-form-container {
-                padding: 20px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/sell_post.css">
 </head>
 <body>
+
+    <div class="menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-ellipsis-v"></i>
+    </div>
+
     <div class="dashboard-container">
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <?php if (!empty($farmer['farmer_image'])): ?>
@@ -522,46 +166,7 @@ $conn->close();
             </div>
             
             <div class="sidebar-menu">
-                <a href="farmer_dashboard.php">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="sell_post.php" class="active">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>Sell Post</span>
-                </a>
-                <a href="farmer_profile.php">
-                    <i class="fas fa-user"></i>
-                    <span>Your Profile</span>
-                </a>
-                <a href="farmer_orders.php">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Orders</span>
-                </a>
-                <a href="farmer_price_list.php">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Price List</span>
-                </a>
-                <a href="farmer_logout.php">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
-            </div>
-        </div>
-        
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <?php if (!empty($farmer['farmer_image'])): ?>
-                    <img src="data:image/jpeg;base64,<?php echo base64_encode($farmer['farmer_image']); ?>" alt="Profile" class="profile-img">
-                <?php else: ?>
-                    <img src="images/default-profile.png" alt="Profile" class="profile-img">
-                <?php endif; ?>
-                <h4 class="profile-name"><?php echo htmlspecialchars($farmer['farmer_name']); ?></h4>
-                <div class="profile-role">Farmer</div>
-            </div>
-            
-            <div class="sidebar-menu">
-                <a href="farmer_dashboard.php">
+                <a href="farmer_dashboard.php" >
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
@@ -774,30 +379,20 @@ $conn->close();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Image preview functionality
-        document.getElementById('crop_image').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('imagePreview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                event.target !== toggleBtn && 
+                !toggleBtn.contains(event.target)) {
+                sidebar.classList.remove('active');
             }
         });
-
-        // Set max date to today for harvest date
-        document.getElementById('harvest_date').max = new Date().toISOString().split("T")[0];
-        
-        // Auto-dismiss alerts after 5 seconds
-        setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                new bootstrap.Alert(alert).close();
-            });
-        }, 5000);
     </script>
 </body>
 </html>

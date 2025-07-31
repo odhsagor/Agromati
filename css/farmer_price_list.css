@@ -1,0 +1,213 @@
+:root {
+            --primary-color: #4CAF50;
+            --primary-dark: #3d8b40;
+            --text-color: #333;
+            --text-light: #666;
+            --border-color: #e0e0e0;
+            --price-up: #28a745;
+            --price-down: #dc3545;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            color: var(--text-color);
+        }
+        
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: fixed;
+            box-shadow: var(--shadow);
+            height: 100vh;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        .profile-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .profile-role {
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            padding: 3px 10px;
+            background-color: rgba(76, 175, 80, 0.1);
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 5px 0;
+            color: var(--text-light);
+            transition: all 0.3s;
+        }
+        
+        .sidebar-menu a i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .sidebar-menu a.active {
+            border-left: 4px solid var(--primary-color);
+        }
+        .sidebar-menu a {
+          text-decoration: none !important;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .price-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .price-card h2 {
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
+        
+        .last-updated {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-box {
+            width: 100%;
+            max-width: 350px;
+        }
+        
+        .price-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        
+        .price-table th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        .price-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .price-up {
+            color: var(--price-up);
+            font-weight: 500;
+        }
+        
+        .price-down {
+            color: var(--price-down);
+            font-weight: 500;
+        }
+        
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 101;
+            background: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: flex;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .price-table thead {
+                display: none;
+            }
+            
+            .price-table tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid var(--border-color);
+                border-radius: 5px;
+            }
+            
+            .price-table td {
+                display: flex;
+                justify-content: space-between;
+                padding: 10px;
+            }
+            
+            .price-table td:before {
+                content: attr(data-label);
+                font-weight: 500;
+                margin-right: 10px;
+            }
+        }

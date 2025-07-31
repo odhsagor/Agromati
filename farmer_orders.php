@@ -1,13 +1,12 @@
 <?php
 session_start();
 
-// Redirect to login if not authenticated as farmer
 // if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_type'] !== 'farmer') {
 //     header("Location: farmer_Login.php");
 //     exit;
 // }
 
-// Database connection
+
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -19,13 +18,11 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Update order status if form submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     $order_id = $_POST['order_id'];
     $new_status = $_POST['status'];
     $farmer_id = $_SESSION['farmer_id'];
     
-    // Verify the order belongs to this farmer
     $stmt = $conn->prepare("SELECT o.order_id FROM orders o 
                            JOIN crops c ON o.crop_id = c.crop_id 
                            WHERE o.order_id = ? AND c.farmer_id = ?");
@@ -34,7 +31,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     $stmt->store_result();
     
     if ($stmt->num_rows > 0) {
-        // Update status
         $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
         $stmt->bind_param("si", $new_status, $order_id);
         $stmt->execute();
@@ -50,7 +46,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_status'])) {
     $stmt->close();
 }
 
-// Get farmer's orders
 $farmer_id = $_SESSION['farmer_id'];
 $query = "SELECT o.order_id, o.quantity, o.total_price, o.order_date, o.status,
                  c.crop_name, c.crop_image,
@@ -65,7 +60,7 @@ $stmt->bind_param("i", $farmer_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Get farmer details for sidebar
+
 $stmt = $conn->prepare("SELECT farmer_name, farmer_image FROM farmers WHERE farmer_id = ?");
 $stmt->bind_param("i", $farmer_id);
 $stmt->execute();
@@ -85,247 +80,14 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #28a745;
-            --primary-dark: #218838;
-            --secondary: #ffc107;
-            --dark: #343a40;
-            --light: #f8f9fa;
-            --white: #fff;
-            --black: #000;
-            --text: #333;
-            --text-light: #6c757d;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f5f5;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar - Same as farmer dashboard */
-        .sidebar {
-            width: 250px;
-            background: var(--white);
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            height: 100%;
-            padding: 20px 0;
-            transition: all 0.3s;
-        }
-
-        .sidebar-header {
-            text-align: center;
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin: 0 auto 15px;
-        }
-
-        .profile-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .profile-role {
-            color: var(--primary);
-            font-size: 0.9rem;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: var(--text);
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-
-        .sidebar-menu a:hover, 
-        .sidebar-menu a.active {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--primary);
-            border-left: 3px solid var(--primary);
-        }
-
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 250px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background: var(--white);
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .page-title h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0;
-            color: var(--primary);
-        }
-
-        /* Orders Table */
-        .orders-table {
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-        }
-
-        .table thead th {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--primary);
-            border-bottom: none;
-        }
-
-        .order-img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 5px;
-        }
-
-        .buyer-img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 10px;
-        }
-
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .status-confirmed {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .status-shipped {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .status-delivered {
-            background-color: #c3e6cb;
-            color: #155724;
-        }
-
-        .status-cancelled {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .form-select {
-            border-radius: 5px;
-            padding: 5px 10px;
-            font-size: 0.9rem;
-        }
-
-        .btn-update {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            border-radius: 5px;
-            padding: 5px 15px;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .btn-update:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-                overflow: hidden;
-            }
-            
-            .sidebar-header .profile-name,
-            .sidebar-menu a span {
-                display: none;
-            }
-            
-            .sidebar-menu a {
-                justify-content: center;
-                padding: 12px 0;
-            }
-            
-            .sidebar-menu a i {
-                margin-right: 0;
-                font-size: 1.2rem;
-            }
-            
-            .main-content {
-                margin-left: 80px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .dashboard-container {
-                flex-direction: column;
-            }
-            
-            .table-responsive {
-                overflow-x: auto;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/farmer_orders.css">
 </head>
 <body>
+
+    <div class="menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-ellipsis-v"></i>
+    </div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
         <div class="sidebar">
@@ -469,5 +231,21 @@ $conn->close();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                event.target !== toggleBtn && 
+                !toggleBtn.contains(event.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
