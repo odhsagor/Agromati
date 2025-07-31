@@ -140,12 +140,9 @@ $conn->close();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Mobile menu toggle
         document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
             document.querySelector('.sidebar').classList.toggle('active');
         });
-        
-        // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
             const toggleBtn = document.getElementById('mobile-menu-toggle');
@@ -157,8 +154,6 @@ $conn->close();
                 sidebar.classList.remove('active');
             }
         });
-        
-        // Search functionality
         document.querySelector('.search-box input').addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
             const rows = document.querySelectorAll('.price-table tbody tr');

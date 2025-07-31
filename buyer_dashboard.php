@@ -1,27 +1,22 @@
 <?php
 session_start();
 
-// Redirect to login if not authenticated
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header("Location: buyer_Login.php");
     exit;
 }
 
-// Database connection
 $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "agromati";
 
-// Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Get buyer details
 $buyer_id = $_SESSION['buyer_id'];
 $stmt = $conn->prepare("SELECT buyer_name, buyer_image FROM buyers WHERE buyer_id = ?");
 $stmt->bind_param("i", $buyer_id);
@@ -32,6 +27,8 @@ $buyer = $result->fetch_assoc();
 $stmt->close();
 $conn->close();
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,281 +38,14 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #28a745;
-            --primary-dark: #218838;
-            --secondary: #ffc107;
-            --dark: #343a40;
-            --light: #f8f9fa;
-            --white: #fff;
-            --black: #000;
-            --text: #333;
-            --text-light: #6c757d;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f5f5;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background: var(--white);
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            height: 100%;
-            padding: 20px 0;
-            transition: all 0.3s;
-        }
-
-        .sidebar-header {
-            text-align: center;
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin: 0 auto 15px;
-        }
-
-        .profile-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .profile-role {
-            color: var(--primary);
-            font-size: 0.9rem;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: var(--text);
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-
-        .sidebar-menu a:hover, 
-        .sidebar-menu a.active {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--primary);
-            border-left: 3px solid var(--primary);
-        }
-
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 250px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background: var(--white);
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .page-title h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0;
-            color: var(--primary);
-        }
-
-        .logout-btn {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Dashboard Cards */
-        .dashboard-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            transition: all 0.3s;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header {
-            padding: 15px 20px;
-            background: rgba(40, 167, 69, 0.1);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .card-header h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0;
-            color: var(--primary);
-        }
-
-        .card-body {
-            padding: 20px;
-        }
-
-        /* Recent Activity */
-        .recent-activity {
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .activity-item {
-            display: flex;
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(40, 167, 69, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            color: var(--primary);
-        }
-
-        .activity-content h4 {
-            font-size: 1rem;
-            margin-bottom: 5px;
-        }
-
-        .activity-content p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-bottom: 0;
-        }
-
-        .activity-time {
-            color: var(--text-light);
-            font-size: 0.8rem;
-        }
-
-        /* Crop Cards */
-        .crop-card {
-            transition: all 0.3s;
-            border: none;
-            margin-bottom: 20px;
-        }
-
-        .crop-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .crop-img {
-            height: 180px;
-            object-fit: cover;
-        }
-
-        .price-tag {
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-                overflow: hidden;
-            }
-            
-            .sidebar-header .profile-name,
-            .sidebar-menu a span {
-                display: none;
-            }
-            
-            .sidebar-menu a {
-                justify-content: center;
-                padding: 12px 0;
-            }
-            
-            .sidebar-menu a i {
-                margin-right: 0;
-                font-size: 1.2rem;
-            }
-            
-            .main-content {
-                margin-left: 80px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .dashboard-container {
-                flex-direction: column;
-            }
-        }
-    </style>
+     <link rel="stylesheet" href="css/buyer_dashboard.css">
 </head>
 <body>
+
+     <div class="menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-ellipsis-v"></i>
+    </div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
         <div class="sidebar">
@@ -569,7 +299,20 @@ $conn->close();
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Mobile sidebar toggle (can be added later if needed)
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                event.target !== toggleBtn && 
+                !toggleBtn.contains(event.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
     </script>
 </body>
 </html>

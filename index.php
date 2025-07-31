@@ -228,7 +228,7 @@
             <div class="footer-grid">
                 <div class="footer-col">
                     <img src="images/logo.png" alt="Agromati">
-                    <p>Empowering Bangladeshi farmers with fair prices and direct market access since 2023.</p>
+                    <p>Empowering Bangladeshi farmers with fair prices and direct market access since 2025.</p>
                     <div class="social-links">
                         <a href="#"><i class="fab fa-facebook-f"></i></a>
                         <a href="#"><i class="fab fa-whatsapp"></i></a>
@@ -264,7 +264,7 @@
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; 2023 Agromati. All rights reserved.</p>
+                <p>&copy; 2025 Agromati. All rights reserved.</p>
                 <div>
                     <a href="#">Privacy Policy</a>
                     <a href="#">Terms of Service</a>

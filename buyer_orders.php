@@ -1,13 +1,11 @@
 <?php
 session_start();
 
-// Redirect to login if not authenticated as buyer
 // if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_type'] !== 'buyer') {
 //     header("Location: buyer_Login.php");
 //     exit;
 // }
 
-// Database connection
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -18,8 +16,6 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
-// Get buyer's orders
 $buyer_id = $_SESSION['buyer_id'];
 $query = "SELECT o.order_id, o.quantity, o.total_price, o.order_date, o.status,
                  c.crop_name, c.crop_type, c.crop_image, c.price_per_kg,
@@ -34,7 +30,6 @@ $stmt->bind_param("i", $buyer_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Get buyer details for sidebar
 $stmt = $conn->prepare("SELECT buyer_name, buyer_image FROM buyers WHERE buyer_id = ?");
 $stmt->bind_param("i", $buyer_id);
 $stmt->execute();
@@ -44,7 +39,6 @@ $stmt->close();
 
 $conn->close();
 
-// Status tracking steps
 $status_steps = [
     'pending' => ['icon' => 'fa-hourglass-half', 'color' => 'text-warning', 'text' => 'Order placed'],
     'confirmed' => ['icon' => 'fa-check-circle', 'color' => 'text-primary', 'text' => 'Farmer confirmed'],
@@ -63,314 +57,14 @@ $status_steps = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #28a745;
-            --primary-dark: #218838;
-            --secondary: #ffc107;
-            --dark: #343a40;
-            --light: #f8f9fa;
-            --white: #fff;
-            --black: #000;
-            --text: #333;
-            --text-light: #6c757d;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f5f5;
-        }
-
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar - Same as buyer dashboard */
-        .sidebar {
-            width: 250px;
-            background: var(--white);
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            height: 100%;
-            padding: 20px 0;
-            transition: all 0.3s;
-        }
-
-        .sidebar-header {
-            text-align: center;
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary);
-            margin: 0 auto 15px;
-        }
-
-        .profile-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .profile-role {
-            color: var(--primary);
-            font-size: 0.9rem;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: var(--text);
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-
-        .sidebar-menu a:hover, 
-        .sidebar-menu a.active {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--primary);
-            border-left: 3px solid var(--primary);
-        }
-
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 250px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            background: var(--white);
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .page-title h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0;
-            color: var(--primary);
-        }
-
-        /* Order Cards */
-        .order-card {
-            background: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
-            overflow: hidden;
-            transition: all 0.3s;
-        }
-
-        .order-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .order-header {
-            background: rgba(40, 167, 69, 0.1);
-            padding: 15px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .order-body {
-            padding: 20px;
-        }
-
-        .order-img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 5px;
-        }
-
-        .farmer-img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 10px;
-        }
-
-        .status-tracker {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            margin: 30px 0;
-        }
-
-        .status-tracker::before {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #e9ecef;
-            z-index: 1;
-        }
-
-        .status-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        .status-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 5px;
-            background: var(--white);
-            border: 3px solid #e9ecef;
-        }
-
-        .status-step.active .status-icon {
-            border-color: var(--primary);
-            background: var(--primary);
-            color: var(--white);
-        }
-
-        .status-step.completed .status-icon {
-            border-color: var(--primary);
-            background: var(--primary);
-            color: var(--white);
-        }
-
-        .status-text {
-            font-size: 0.8rem;
-            text-align: center;
-            color: var(--text-light);
-        }
-
-        .status-step.active .status-text,
-        .status-step.completed .status-text {
-            color: var(--dark);
-            font-weight: 500;
-        }
-
-        .order-details {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .detail-label {
-            color: var(--text-light);
-        }
-
-        .detail-value {
-            font-weight: 500;
-        }
-
-        .btn-contact {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            border-radius: 5px;
-            padding: 8px 15px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-
-        .btn-contact:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-                overflow: hidden;
-            }
-            
-            .sidebar-header .profile-name,
-            .sidebar-menu a span {
-                display: none;
-            }
-            
-            .sidebar-menu a {
-                justify-content: center;
-                padding: 12px 0;
-            }
-            
-            .sidebar-menu a i {
-                margin-right: 0;
-                font-size: 1.2rem;
-            }
-            
-            .main-content {
-                margin-left: 80px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .dashboard-container {
-                flex-direction: column;
-            }
-            
-            .status-tracker {
-                flex-wrap: wrap;
-                justify-content: flex-start;
-                gap: 15px;
-            }
-            
-            .status-tracker::before {
-                display: none;
-            }
-            
-            .status-step {
-                flex-direction: row;
-                align-items: center;
-                gap: 10px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/buyer_order.css">
 </head>
 <body>
+
+    <div class="menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-ellipsis-v"></i>
+    </div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
         <div class="sidebar">
@@ -517,5 +211,21 @@ $status_steps = [
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                event.target !== toggleBtn && 
+                !toggleBtn.contains(event.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
