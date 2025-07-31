@@ -323,7 +323,7 @@ $conn->close();
                     <i class="fas fa-shopping-cart"></i>
                     <span>Orders</span>
                 </a>
-                <a href="price_list.php">
+                <a href="farmer_price_list.php">
                     <i class="fas fa-chart-line"></i>
                     <span>Price List</span>
                 </a>

@@ -405,7 +405,7 @@ $status_steps = [
                     <i class="fas fa-tags"></i>
                     <span>Price List</span>
                 </a>
-                <a href="logout.php">
+                <a href="buyer_logout.php">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
                 </a>

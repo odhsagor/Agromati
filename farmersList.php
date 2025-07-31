@@ -211,9 +211,9 @@ $conn->close();
                 <h3><i class="fas fa-leaf"></i> Agromati</h3>
             </div>
             <nav class="sidebar-menu">
-                <a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="admin_dashboard.php" ><i class="fas fa-tachometer-alt"></i> Dashboard</a>
                 <a href="crop-prices.php"><i class="fas fa-seedling"></i> Manage Crops price</a>
-                <a href="farmersList.php"><i class="fas fa-users"></i> Farmers List</a>
+                <a href="farmersList.php" class="active"><i class="fas fa-users"></i> Farmers List</a>
                 <a href="buyersList.php"><i class="fas fa-store"></i> Buyers List</a>
                 <a href="admin_logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>
