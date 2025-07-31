@@ -13,6 +13,15 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Get buyer details
+$buyer_id = $_SESSION['buyer_id'];
+$stmt = $conn->prepare("SELECT buyer_name, buyer_image FROM buyers WHERE buyer_id = ?");
+$stmt->bind_param("i", $buyer_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$buyer = $result->fetch_assoc();
+
+
 // Get all crop prices
 $crop_prices = $conn->query("SELECT * FROM crop_prices ORDER BY crop_name");
 $conn->close();

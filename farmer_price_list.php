@@ -10,6 +10,12 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+$stmt = $conn->prepare("SELECT farmer_name, farmer_image FROM farmers WHERE farmer_id = ?");
+$stmt->bind_param("i", $_SESSION['farmer_id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$farmer = $result->fetch_assoc();
+$stmt->close();
 
 $crop_prices = $conn->query("SELECT * FROM crop_prices ORDER BY crop_name");
 $conn->close();
@@ -299,8 +305,7 @@ $conn->close();
     </style>
 </head>
 <body>
-           <div class="dashboard-container">
-        <!-- Sidebar -->
+    <div class="dashboard-container">        
         <div class="sidebar">
             <div class="sidebar-header">
                 <?php if (!empty($farmer['farmer_image'])): ?>
